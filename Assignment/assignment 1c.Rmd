@@ -1,0 +1,49 @@
+---
+title: "FML -1"
+author: "Chandu"
+date: "`r Sys.Date()`"
+output: html_document
+
+# 1: Download a dataset from the web. You may use any source, but specify the source in your code. Also ensure that the data has a mix of quantitative and qualitative (categorical) variables.
+# 2. Import the dataset into R
+```{r}
+# Load data set
+clothes_data <- read.csv("C:/Users/its me/OneDrive - Kent State University/Desktop/chandu/RHISTORY/clothes_price_prediction_data.csv")
+
+```
+# 3: Print out descriptive statistics for a selection of quantitative and categorical variables.
+```{r}
+# Descriptive statistics for quantitative variables
+summary(clothes_data$Price)
+
+
+# Descriptive statistics for categorical variables
+table(clothes_data$Brand)
+
+```
+# 4: Transform at least one variable. It doesn't matter what the transformation is.
+
+```{r}
+
+# Log-transform the price variable
+clothes_data$log_price <- log(clothes_data$Price)
+
+
+```
+
+# 5: Plot at least one quantitative variable, and one scatterplot
+```{r}
+# Histogram for the price variable
+hist(clothes_data$Price, main = "Histogram of Price", xlab = "Price")
+
+
+clothes_data <- na.omit(clothes_data)
+clothes_data$Brand <- as.factor(clothes_data$Brand)
+
+
+# Scatterplot for Price vs. Brand
+plot(clothes_data$Price, clothes_data$Brand, 
+     main = "Scatterplot: Price vs. Brand", 
+     xlab = "Price", ylab = "Brand")
+```
+
