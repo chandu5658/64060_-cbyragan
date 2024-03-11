@@ -1,0 +1,145 @@
+---
+title: "Untitled"
+author: "Chandu"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+```{r}
+# read the dataset
+bank_data <- read.csv("C:\\Users\\its me\\OneDrive - Kent State University\\Desktop\\Rhistory\\UniversalBank (1).csv")
+
+```
+```{r}
+head(bank_data)#output gives first 5 rows of the dataset
+tail(bank_data)#output gives last 5 rows of the dataset
+nrow(bank_data)#there are 5000 rows
+```
+```{r}
+library(e1071)
+library(caret)
+library(ISLR)
+```
+# Partition the data into training (60%) and validation (40%) sets.
+```{r}
+bank_data$Personal.Loan = as.factor(bank_data$Personal.Loan)
+bank_data$Online = as.factor(bank_data$Online)
+bank_data$CreditCard = as.factor(bank_data$CreditCard)
+set.seed(111)
+train_index <- sample(row.names(bank_data), 0.6*dim(bank_data)[1])  
+valid_index <- setdiff(row.names(bank_data), train_index) 
+Train_data <- bank_data[train_index, ]
+valid_data <- bank_data[valid_index, ]
+
+```
+
+# A. Create a pivot table for the training data with Online as a column variable, CC as a row variable, and Loan as a secondary row variable. The values inside the table should convey the count. In R use functions melt() and cast(),
+```{r}
+library(reshape2)
+melt.data <- melt(Train_data,id.vars = c("CreditCard","Personal.Loan"),variable = "Online")
+pivot_tb <- dcast(melt.data, CreditCard + Personal.Loan ~ Online)
+pivot_tb
+pivot_tb[,c(1:2,14)]
+
+```
+
+# B.Consider the task of classifying a customer who owns a bank credit card and is actively usingonline banking services. Looking at the pivot table, what is the probability that this customerwill accept the loan offer? [This is the probability of loan acceptance (Loan = 1) conditional onhaving a bank credit card (CC = 1) and being an active user of online banking services (Online= 1)]
+
+```{r}
+probability = 57/532
+cat("Prob (Loan = 1 | CC = 1, Online = 1):", round(probability*100,2),"%")
+```
+
+# C.Create two separate pivot tables for the training data. One will have Loan (rows) as a function of Online (columns) and the other will have Loan (rows) as a function of CC.
+```{r}
+melted.data1 <- melt(Train_data,id.vars = c("Personal.Loan"), var = "Online")
+piv_1 <- dcast(melted.data1, Personal.Loan ~ Online)
+piv_1
+piv_1[,c(1,13)]
+```
+```{r}
+melted.data2 <- melt(Train_data,id.vars = "Personal.Loan", var = "CreditCard")
+piv_2 <- dcast(melted.data2, Personal.Loan ~ CreditCard)
+piv_2
+piv_2[,c(1,14)]
+```
+
+# D.Compute the following quantities [P(A | B) means “the probability ofA given B”]: i. P(CC = 1 | Loan = 1) (the proportion of credit card holders among the loan acceptors) ii. P(Online = 1 | Loan = 1) iii. P(Loan = 1) (the proportion of loan acceptors) iv. P(CC = 1 | Loan = 0) v. P(Online = 1 | Loan = 0) vi. P(Loan = 0).
+
+```{r}
+t1 <- table(Train_data[,c(14,10)])
+t1
+
+
+t2 <- table(Train_data[,c(13,10)])
+t2
+
+
+
+t3 <- table(Train_data[,10])
+t3
+```
+i. P(CC = 1 | Loan = 1) (the proportion of credit card holders among the loan acceptors)
+```{r}
+# from t1 we can calculate 
+94/(94 + 209)
+```
+ii. P(Online = 1 | Loan = 1)
+```{r}
+#from t2 we calculate
+181/(181 + 122)
+```
+iii. P(Loan = 1) (the proportion of loan acceptors)
+```{r}
+#from t3 we calculate
+276/(276 + 2755)
+```
+iv.P(CC = 1 | Loan = 0)
+```{r}
+816/(816 + 1939)
+```
+v. P(Online = 1 | Loan = 0)
+```{r}
+1641/(1641 + 1114)
+```
+vi. P(Loan = 0)
+```{r}
+2755/(2755 + 276)
+```
+# E. Use the quantities computed above to compute the naive Bayes probability P(Loan = 1 | CC = 1, Online = 1).
+```{r}
+((94/(94 + 209))*(181/(181 + 122))*(276/(276 + 2755)))/(((94/(94 + 209))*(181/(181 + 122))*(276/(276 + 2755)))+((816/(816 + 1939))*(1641/(1641 + 1114))*2755/(2755 + 276)))
+```
+
+# F. Compare this value with the one obtained from the pivot table in (B). Which is a more accurate estimate?
+
+The provided information suggests probabilities for the event "Loan = 1" given conditions "CC = 1" and "Online = 1." The probability in (B) is 10.71%, and in (E) it is 11.06%.
+
+To determine which estimate is more accurate, you would typically compare the probabilities and choose the one that is closer to the observed or actual outcomes in your dataset. However, it's important to note that without knowing the context or having additional information about the dataset, it's challenging to definitively say which estimate is more accurate.
+
+If you have a larger dataset or more information about the performance of these probabilities in predicting actual outcomes, you may be able to evaluate their accuracy more effectively. Additionally, if there are other metrics or validation techniques available, you could use them to assess the performance of the model or method generating these probabilities.
+
+
+
+# G. Which of the entries in this table are needed for computing P(Loan = 1 | CC = 1, Online = 1)? Run naive Bayes on the data. Examine the model output on training data, and find the entry that corresponds to P(Loan = 1 | CC = 1, Online = 1). Compare this to the number you obtained in (E).
+```{r}
+nb_train = Train_data[,c(10,13:14)]
+nb_valid = valid_data[,c(10,13:14)]
+nb_model = naiveBayes(Personal.Loan~.,data=nb_train)
+print(nb_model)
+```
+
+```{r}
+result <- (0.327 * 0.643 * 0.092) / ((0.327 * 0.643 * 0.092) + (0.290 * 0.595 * 0.907))
+cat("Prob (Loan = 1 | CC = 1, Online = 1):", round(result*100),"%")
+```
+
+The probabilities you provided are as follows:
+
+- (G).Prob (Loan = 1 | CC = 1, Online = 1): 11%
+- (E).Prob (Loan = 1 | CC = 1, Online = 1): 11.06%
+
+Comparing these two probabilities:
+
+(G) has a probability of 11%, while (E) has a slightly higher probability of 11.06%. Therefore, (E) has a slightly higher probability of obtaining a loan given the conditions CC = 1 and Online = 1 compared to (G).
